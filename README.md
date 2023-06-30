@@ -78,7 +78,7 @@ docker container run \
     --detach \
     --name nginx1 \
     --publish 8081:80 \
-    --health-cmd="curl -f http://localhost/ || exit 1" \
+    --health-cmd="curl -f http://localhost:8081 || exit 1" \
     --health-interval=5s \
     --health-retries=3 \
     --health-timeout=2s \
@@ -92,3 +92,46 @@ picture of the running container:
 
 repeate the same steps for nginx2 and nginx3 or just copy and modify the files
 
+buld the other docker images:
+
+```bash
+docker image build -t nginx2 nginx2
+docker image build -t nginx3 nginx3
+```
+
+test the other docker images:
+
+```bash
+docker container run \
+    --detach \
+    --name nginx2 \
+    --publish 8082:80 \
+    --health-cmd="curl -f http://localhost:8082 || exit 1" \
+    --health-interval=5s \
+    --health-retries=3 \
+    --health-timeout=2s \
+    --health-start-period=5s \
+    nginx2
+
+docker container run \
+    --detach \
+    --name nginx3 \
+    --publish 8083:80 \
+    --health-cmd="curl -f http://localhost:8083 || exit 1" \
+    --health-interval=5s \
+    --health-retries=3 \
+    --health-timeout=2s \
+    --health-start-period=5s \
+    nginx3
+```
+cleanup the other docker images:
+
+```bash
+docker container stop nginx2
+docker container rm nginx2
+docker image rm nginx2
+
+docker container stop nginx3
+docker container rm nginx3
+docker image rm nginx3
+```

@@ -66,8 +66,8 @@ docker container ls
 curl localhost:8081
 
 # cleanup for nginx1
-docker stop nginx1
-docker rm nginx1
+docker container stop nginx1
+docker container rm nginx1
 docker image rm nginx1
 ```
 
@@ -87,5 +87,8 @@ docker container run \
 ```
 
 picture of the running container:
-[!health](./README.assets/nginx1.png)
+
+![health](./README.assets/health.png)
+
+repeate the same steps for nginx2 and nginx3 or just copy and modify the files
 

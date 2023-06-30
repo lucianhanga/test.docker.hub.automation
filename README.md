@@ -135,3 +135,134 @@ docker container stop nginx3
 docker container rm nginx3
 docker image rm nginx3
 ```
+Create the docker compose file
+
+```bash
+cat <<EOF > docker-compose.yml
+version: "3.7"
+services:
+  nginx1:
+    image: nginx1
+    build: nginx1
+    ports:
+      - "8081:80"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081"]
+      interval: 5s
+      retries: 3
+      timeout: 2s
+      start_period: 5s
+  nginx2:
+    image: nginx2
+    build: nginx2
+    ports:
+      - "8082:80"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082"]
+      interval: 5s
+      retries: 3
+      timeout: 2s
+      start_period: 5s
+  nginx3:
+    image: nginx3
+    build: nginx3
+    ports:
+      - "8083:80"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083"]
+      interval: 5s
+      retries: 3
+      timeout: 2s
+      start_period: 5s
+EOF
+```
+run the docker compose file
+
+```bash
+# start the docker compose file
+docker-compose up -d
+
+# check if the containers are running
+docker container ls
+
+# check if the landing pages are shown
+curl localhost:8081
+curl localhost:8082
+curl localhost:8083
+```
+create the reverse proxy image
+
+```bash
+mkdir -p reverse-proxy
+cat <<EOF > reverse-proxy/Dockerfile
+FROM nginx:1.17.10-alpine
+COPY nginx.conf /etc/nginx/nginx.conf
+EOF
+```
+create the nginx.conf for the reverse proxy which will forward the requests to the correct nginx image based on the location header
+
+```bash
+cat <<EOF > reverse-proxy/nginx.conf
+events {
+    worker_connections 1024;
+}
+http {
+    server {
+        listen 80;
+        server_name example.com;
+
+        location /app1 {
+            proxy_pass http://nginx1;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+
+        location /app2 {
+            proxy_pass http://nginx2;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+
+        location /app3 {
+            proxy_pass http://nginx3;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        }
+
+        location / {
+            # stay here
+            root /usr/share/nginx/html;
+        }
+    }
+}
+EOF
+```
+build the reverse proxy image and run it locally on port 8080
+
+```bash
+# build the reverse proxy image
+docker image build -t reverse-proxy reverse-proxy
+# run with health check the reverse proxy image locally on port 8080
+docker container run \
+    --detach \
+    --name reverse-proxy \
+    --publish 8080:80 \
+    --health-cmd="curl -f http://localhost:8080 || exit 1" \
+    --health-interval=5s \
+    --health-retries=3 \
+    --health-timeout=2s \
+    --health-start-period=5s \
+    reverse-proxy
+```
+
+get the logs from the reverse proxy container
+
+```bash
+docker container logs reverse-proxy
+```
+
+add the reverse proxy to the docker compose file
+
